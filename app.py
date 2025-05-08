@@ -22,6 +22,7 @@ position_map = {
     "下课时间": {"box": ((1960, 1257), (2250, 1418)), "max_font_size": 64},
     "上课内容": {"box": ((540, 1436), (2220, 1989)), "max_font_size": 50},
     "作业内容": {"box": ((538, 2031), (2230, 2468)), "max_font_size": 50},
+    "导师签名": {"box": ((1440, 2650), (1830, 2780)), "max_font_size": 64},
 }
 
 def wrap_line_by_width(line, font, max_width):
@@ -94,48 +95,83 @@ def fill_image(template_path, data_dict, position_map, font_path, global_font_si
             draw, value, box, font_path, max_font_size,
             fill="black", show_border=show_boxes, auto_font_size=True
         )
+
+    if signature_img:
+        draw_signature(image, signature_img, position_map["导师签名"]["box"])
+
     return image
 
+def draw_signature(image, signature_img, box):
+    (x1, y1), (x2, y2) = box
+    target_height = y2 - y1
+
+    scale = target_height / signature_img.height
+    new_width = int(signature_img.width * scale)
+    resized = signature_img.resize((new_width, target_height))
+
+    center_x = x1 + (x2 - x1 - new_width) // 2
+    image.paste(resized, (center_x, y1), resized)
+
 def parse_csv(uploaded_file):
-    # 1. 直接拿回完整的文本，不 splitlines()
+    # 1. 读取完整文本，解码为字符串
     raw = uploaded_file.read().decode('utf-8')
-    # 2. 用 StringIO 包装，让 csv.reader 处理多行单元格
+    # 2. 使用 StringIO 包装，以便 csv.reader 正确处理内容
     reader = csv.reader(io.StringIO(raw))
     rows = list(reader)
 
-    num_columns = len(rows[0])
-    num_blocks  = num_columns // 2
+    if not rows:
+        return []
+
+    max_blocks = len(rows[0]) // 2
     all_entries = []
 
-    for b in range(num_blocks):
+    for b in range(max_blocks):
         entry = {}
+        is_empty_block = True
+
         for row in rows:
-            if len(row) > b*2 + 1:
-                key   = row[b*2].strip()
-                value = row[b*2+1]
-                entry[key] = value
-        all_entries.append(entry)
+            if len(row) > b * 2 + 1:
+                key = row[b * 2].strip()
+                value = row[b * 2 + 1].strip()
+                # 只在 key 或 value 至少一个非空时记录
+                if key or value:
+                    entry[key] = value
+                    is_empty_block = False
+
+        if not is_empty_block:
+            all_entries.append(entry)
+        else:
+            # 如果该块是空的，我们认为后面也没用了，提前退出
+            break
 
     for e in all_entries:
         try:
-            e["_parsed_date"] = datetime.strptime(e.get("上课日期",""), "%Y-%m-%d")
-        except:
+            e["_parsed_date"] = datetime.strptime(e.get("上课日期", ""), "%Y-%m-%d")
+        except Exception:
             e["_parsed_date"] = datetime.min
-    all_entries.sort(key=lambda x: x["_parsed_date"])
+
+    all_entries.sort(key=lambda x: x["_parsed_date"])   # 根据日期排序
     return all_entries
+
 
 # === Streamlit UI ===
 st.title("📋 课程记录表生成器")
 st.write("请上传课程记录CSV文件：")
 
 uploaded_file = st.file_uploader("选择CSV文件", type=["csv"])
+start_index = st.number_input("从第几次课开始？", min_value=1, value=1, step=1)
+signature_file = st.file_uploader("上传导师签名（可选）", type=["png", "jpg", "jpeg"])
+signature_img = None
+if signature_file is not None:
+    signature_img = Image.open(signature_file).convert("RGBA")
+
 if uploaded_file is not None:
     records = parse_csv(uploaded_file)
     st.success(f"成功读取 {len(records)} 条记录")
 
     result_images = []
     for idx, entry in enumerate(records):
-        entry["第几次课"] = f"{idx + 1}"
+        entry["第几次课"] = f"{start_index + idx}"
         img = fill_image(TEMPLATE_PATH, entry, position_map, FONT_PATH, FONT_SIZE, SHOW_BOXES)
 
         buf = BytesIO()
@@ -145,6 +181,7 @@ if uploaded_file is not None:
     # 先展示所有生成的图片
     for filename, data in result_images:
         st.image(data, caption=filename)
+        st.download_button("下载图像", data, file_name=filename, mime="image/png")
 
     # 然后一次性打包为 zip 并提供下载
     zip_buf = BytesIO()
@@ -153,9 +190,21 @@ if uploaded_file is not None:
             zipf.writestr(filename, data)
     zip_buf.seek(0)
 
+    st.write("")
+    st.write("")
+    st.write("")
+    st.write("一键下载：")
     st.download_button(
         label="📥 下载所有记录表（ZIP）",
         data=zip_buf,
         file_name="课程记录表合集.zip",
         mime="application/zip"
     )
+
+
+    st.markdown("""
+    <hr style="margin-top: 50px;"/>
+    <div style="text-align: center; color: gray; font-size: 0.8em;">
+        © 2025 By Jianchun Zhou. SFK Haidian.
+    </div>
+""", unsafe_allow_html=True)
