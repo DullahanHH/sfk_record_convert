@@ -202,9 +202,9 @@ if uploaded_file is not None:
     )
 
 
-    st.markdown("""
-    <hr style="margin-top: 50px;"/>
-    <div style="text-align: center; color: gray; font-size: 0.8em;">
-        © 2025 By Jianchun Zhou. SFK Haidian.
-    </div>
+st.markdown("""
+<hr style="margin-top: 50px;"/>
+<div style="text-align: center; color: gray; font-size: 0.8em;">
+    © 2025 By Jianchun Zhou. SFK Haidian.
+</div>
 """, unsafe_allow_html=True)
