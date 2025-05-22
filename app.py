@@ -110,8 +110,8 @@ def fill_image(template_path, data_dict, position_map, font_path, global_font_si
 
 def hw_status_check(draw, font_path, entry):
     checkbox_map = {
-        "完成": (1420, 2530),
-        "未完成": (1980, 2530)
+        "完成": (1390, 2530),
+        "未完成": (1940, 2530)
     }
     hw_status = entry.get("上次作业完成情况", "").strip()
     if hw_status in checkbox_map:
