@@ -97,12 +97,26 @@ def fill_image(template_path, data_dict, position_map, font_path, global_font_si
             fill="black", show_border=show_boxes, auto_font_size=True
         )
 
+    # 作业完成情况
+    hw_status_check(draw, font_path);
+
+    # 签名填入
     if signature_img:
         draw_signature(image, signature_img, position_map["导师签名"]["box"])
     if signature_img_student:
         draw_signature(image, signature_img_student, position_map["学生签名"]["box"])
 
     return image
+
+def hw_status_check(draw, font_path):
+    checkbox_map = {
+        "完成": (1420, 2580),
+        "未完成": (1980, 2580)
+    }
+    hw_status = entry.get("上次作业完成情况", "").strip()
+    if hw_status in checkbox_map:
+        check_pos = checkbox_map[hw_status]
+        draw.text(check_pos, "✔", font=ImageFont.truetype(font_path, 64))
 
 def draw_signature(image, signature_img, box):
     (x1, y1), (x2, y2) = box
@@ -168,7 +182,7 @@ hidden_file = None
 
 if "hide_clicks" not in st.session_state:
     st.session_state.hide_clicks = 0
-if st.session_state.hide_clicks >= 10:
+if st.session_state.hide_clicks >= 5:
     hidden_file = st.file_uploader("上传学生签名", type=["png", "jpg", "jpeg"])
 
 signature_img = None
