@@ -98,7 +98,7 @@ def fill_image(template_path, data_dict, position_map, font_path, global_font_si
         )
 
     # 作业完成情况
-    hw_status_check(draw, font_path);
+    hw_status_check(draw, font_path, data_dict);
 
     # 签名填入
     if signature_img:
@@ -108,7 +108,7 @@ def fill_image(template_path, data_dict, position_map, font_path, global_font_si
 
     return image
 
-def hw_status_check(draw, font_path):
+def hw_status_check(draw, font_path, entry):
     checkbox_map = {
         "完成": (1420, 2580),
         "未完成": (1980, 2580)
@@ -116,7 +116,7 @@ def hw_status_check(draw, font_path):
     hw_status = entry.get("上次作业完成情况", "").strip()
     if hw_status in checkbox_map:
         check_pos = checkbox_map[hw_status]
-        draw.text(check_pos, "✔", font=ImageFont.truetype(font_path, 64))
+        draw.text(check_pos, "✔", fill="green", font=ImageFont.truetype(font_path, 64))
 
 def draw_signature(image, signature_img, box):
     (x1, y1), (x2, y2) = box
